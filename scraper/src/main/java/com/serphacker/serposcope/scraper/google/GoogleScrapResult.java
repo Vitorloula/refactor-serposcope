@@ -20,11 +20,6 @@ public class GoogleScrapResult {
         ERROR_CAPTCHA_NO_SOLVER,
         ERROR_IP_BANNED
     };
-    
-    public Status status;
-    public List<String> urls;
-    public int captchas;
-    public long googleResults;    
 
     public GoogleScrapResult() {
     }
@@ -39,6 +34,7 @@ public class GoogleScrapResult {
         this.urls = urls;
         this.captchas = captchas;
     }
+<<<<<<< HEAD
 
     public GoogleScrapResult(Status status, List<String> urls, int captchas, long googleResults) {
         this.status = status;
@@ -84,5 +80,10 @@ public class GoogleScrapResult {
         return true;
     }
     
+=======
+>>>>>>> 6efc513 (Revert "fetch SERP total results number")
     
+    public Status status;
+    public List<String> urls;
+    public int captchas;
 }
