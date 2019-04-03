@@ -1,6 +1,12 @@
 FROM java:8-jre
 
+<<<<<<< HEAD
 ENV SERPOSCOPE_VERSION 2.11.0
+=======
+ARG SERPOSCOPE_VERSION
+
+ENV SERPOSCOPE_VERSION ${SERPOSCOPE_VERSION:-2.10.0}
+>>>>>>> cfb73ab ([Dockerfile] use ARG to pass the version as a build argument)
 
 COPY serposcope /etc/default/serposcope
 RUN wget https://serposcope.serphacker.com/download/${SERPOSCOPE_VERSION}/serposcope_${SERPOSCOPE_VERSION}_all.deb -O /tmp/serposcope.deb
