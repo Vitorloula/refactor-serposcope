@@ -6,11 +6,15 @@ ENV SERPOSCOPE_VERSION 2.11.0
 ARG SERPOSCOPE_VERSION
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ENV SERPOSCOPE_VERSION ${SERPOSCOPE_VERSION:-2.10.0}
 >>>>>>> cfb73ab ([Dockerfile] use ARG to pass the version as a build argument)
 =======
 ENV SERPOSCOPE_VERSION ${SERPOSCOPE_VERSION:-2.12.0}
 >>>>>>> 12d10a5 (fix anticaptcha / 2captchas API #228)
+=======
+ENV SERPOSCOPE_VERSION ${SERPOSCOPE_VERSION:-2.13.0}
+>>>>>>> 5988480 (update to 2.13.0)
 
 COPY serposcope /etc/default/serposcope
 RUN wget https://serposcope.serphacker.com/download/${SERPOSCOPE_VERSION}/serposcope_${SERPOSCOPE_VERSION}_all.deb -O /tmp/serposcope.deb
