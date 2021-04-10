@@ -7,6 +7,7 @@ ARG SERPOSCOPE_VERSION
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 ENV SERPOSCOPE_VERSION ${SERPOSCOPE_VERSION:-2.10.0}
 >>>>>>> cfb73ab ([Dockerfile] use ARG to pass the version as a build argument)
 =======
@@ -15,6 +16,9 @@ ENV SERPOSCOPE_VERSION ${SERPOSCOPE_VERSION:-2.12.0}
 =======
 ENV SERPOSCOPE_VERSION ${SERPOSCOPE_VERSION:-2.13.0}
 >>>>>>> 5988480 (update to 2.13.0)
+=======
+ENV SERPOSCOPE_VERSION ${SERPOSCOPE_VERSION:-2.13.1}
+>>>>>>> 7f06788 (fix windows build)
 
 COPY serposcope /etc/default/serposcope
 RUN wget https://serposcope.serphacker.com/download/${SERPOSCOPE_VERSION}/serposcope_${SERPOSCOPE_VERSION}_all.deb -O /tmp/serposcope.deb
