@@ -9,6 +9,7 @@ ARG SERPOSCOPE_VERSION
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 ENV SERPOSCOPE_VERSION ${SERPOSCOPE_VERSION:-2.10.0}
 >>>>>>> cfb73ab ([Dockerfile] use ARG to pass the version as a build argument)
 =======
@@ -23,6 +24,9 @@ ENV SERPOSCOPE_VERSION ${SERPOSCOPE_VERSION:-2.13.1}
 =======
 ENV SERPOSCOPE_VERSION ${SERPOSCOPE_VERSION:-2.14.0}
 >>>>>>> 23ff4dd (fix mobile serp issue #244)
+=======
+ENV SERPOSCOPE_VERSION ${SERPOSCOPE_VERSION:-2.15.0}
+>>>>>>> 0798097 (update version 2.15.0)
 
 COPY serposcope /etc/default/serposcope
 RUN wget https://serposcope.serphacker.com/download/${SERPOSCOPE_VERSION}/serposcope_${SERPOSCOPE_VERSION}_all.deb -O /tmp/serposcope.deb
