@@ -1,5 +1,5 @@
 # LEGACY CODE DISCLAIMER
-
+Trabalho de reuso 
 Old application in survival mode. Bug won't be fixed and PR won't be merged.
 
 Feel free to fork it but you better rewrite it from scratch because it contains a lot of legacy code I have myself hard time to maintain :)
