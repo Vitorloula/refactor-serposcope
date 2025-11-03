@@ -10,9 +10,8 @@ package com.serphacker.serposcope.scraper.google;
 import java.util.List;
 import java.util.Objects;
 
-
 public class GoogleScrapResult {
-    
+
     public enum Status {
         OK,
         ERROR_NETWORK,
@@ -21,15 +20,15 @@ public class GoogleScrapResult {
         ERROR_IP_BANNED,
         ERROR_PARSING
     };
-    
+
     public Status status;
     public List<String> urls;
     public int captchas;
-    public long googleResults;    
+    public long googleResults;
 
     public GoogleScrapResult() {
     }
-    
+
     public GoogleScrapResult(Status status, List<String> urls) {
         this.status = status;
         this.urls = urls;
@@ -40,10 +39,6 @@ public class GoogleScrapResult {
         this.urls = urls;
         this.captchas = captchas;
     }
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> c03c9f2 (Revert "Revert "fetch SERP total results number"")
 
     public GoogleScrapResult(Status status, List<String> urls, int captchas, long googleResults) {
         this.status = status;
@@ -51,12 +46,11 @@ public class GoogleScrapResult {
         this.captchas = captchas;
         this.googleResults = googleResults;
     }
-<<<<<<< HEAD
 
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 73 * hash + (this.status == null ? 0 : (this.status.ordinal()+1) );
+        hash = 73 * hash + (this.status == null ? 0 : (this.status.ordinal() + 1));
         hash = 73 * hash + Objects.hashCode(this.urls);
         hash = 73 * hash + this.captchas;
         hash = 73 * hash + (int) (this.googleResults ^ (this.googleResults >>> 32));
@@ -89,10 +83,5 @@ public class GoogleScrapResult {
         }
         return true;
     }
-    
-=======
->>>>>>> 6efc513 (Revert "fetch SERP total results number")
-=======
->>>>>>> c03c9f2 (Revert "Revert "fetch SERP total results number"")
-    
+
 }
