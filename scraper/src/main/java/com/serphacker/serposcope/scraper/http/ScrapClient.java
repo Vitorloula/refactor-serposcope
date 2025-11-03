@@ -180,31 +180,10 @@ public class ScrapClient implements Closeable, CredentialsProvider {
 
     }
 
-    /**
-     * Construtor padrão com configurações default.
-     * Para configurações customizadas, use ScrapClient(ScrapClientConfig).
-     */
     public ScrapClient() {
         this(ScrapClientConfig.builder().build());
     }
 
-    /**
-     * Construtor com configuração customizada usando Builder Pattern.
-     * 
-     * Exemplo:
-     * 
-     * <pre>
-     * ScrapClientConfig config = ScrapClientConfig.builder()
-     *         .userAgent("Custom Agent")
-     *         .timeout(5000)
-     *         .proxy(myProxy)
-     *         .insecureSSL(true)
-     *         .build();
-     * ScrapClient client = new ScrapClient(config);
-     * </pre>
-     * 
-     * @param config configuração imutável do cliente
-     */
     public ScrapClient(ScrapClientConfig config) {
         setMaxResponseLength(config.getMaxResponseLength());
 
@@ -265,13 +244,6 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         return useragent;
     }
 
-    /**
-     * Define o User-Agent.
-     * 
-     * @param useragent string do user agent
-     * @deprecated Use ScrapClientConfig.Builder ao invés:
-     *             ScrapClient(ScrapClientConfig.builder().userAgent(...).build())
-     */
     @Deprecated
     public void setUseragent(String useragent) {
         this.useragent = useragent;
@@ -301,13 +273,6 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         return timeoutMS;
     }
 
-    /**
-     * Define o timeout em milissegundos.
-     * 
-     * @param timeoutMS timeout em milissegundos
-     * @deprecated Use ScrapClientConfig.Builder ao invés:
-     *             ScrapClient(ScrapClientConfig.builder().timeout(...).build())
-     */
     @Deprecated
     public final void setTimeout(Integer timeoutMS) {
         this.timeoutMS = timeoutMS;
@@ -322,13 +287,6 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         return maxResponseLength;
     }
 
-    /**
-     * Define o tamanho máximo da resposta.
-     * 
-     * @param maxResponseLength tamanho máximo em bytes
-     * @deprecated Use ScrapClientConfig.Builder ao invés:
-     *             ScrapClient(ScrapClientConfig.builder().maxResponseLength(...).build())
-     */
     @Deprecated
     public final void setMaxResponseLength(int maxResponseLength) {
         this.maxResponseLength = maxResponseLength + 1;
@@ -723,13 +681,6 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         return sslConnectionFactory.isInsecure();
     }
 
-    /**
-     * Define se deve aceitar certificados SSL inválidos.
-     * 
-     * @param insecureSSL true para aceitar certificados inválidos
-     * @deprecated Use ScrapClientConfig.Builder ao invés:
-     *             ScrapClient(ScrapClientConfig.builder().insecureSSL(...).build())
-     */
     @Deprecated
     public void setInsecureSSL(boolean insecureSSL) {
         this.sslConnectionFactory.setInsecure(insecureSSL);
