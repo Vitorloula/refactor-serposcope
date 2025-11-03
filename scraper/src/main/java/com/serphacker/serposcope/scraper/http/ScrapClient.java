@@ -12,6 +12,9 @@ import com.serphacker.serposcope.scraper.http.extensions.CloseableBasicHttpClien
 import com.serphacker.serposcope.scraper.http.extensions.ScrapClientPlainConnectionFactory;
 import com.serphacker.serposcope.scraper.http.extensions.ScrapClientSSLConnectionFactory;
 import com.serphacker.serposcope.scraper.http.extensions.ScrapClientSocksAuthenticator;
+import com.serphacker.serposcope.scraper.http.factory.GetRequestFactory;
+import com.serphacker.serposcope.scraper.http.factory.HttpRequestFactory;
+import com.serphacker.serposcope.scraper.http.factory.PostRequestFactory;
 import com.serphacker.serposcope.scraper.http.proxy.BindProxy;
 import com.serphacker.serposcope.scraper.http.proxy.DirectNoProxy;
 import com.serphacker.serposcope.scraper.http.proxy.HttpProxy;
@@ -422,11 +425,8 @@ public class ScrapClient implements Closeable, CredentialsProvider {
     }
 
     public int get(String url, String referrer) {
-        HttpGet request = new HttpGet(url);
-        if (referrer != null) {
-            request.addHeader("Referer", referrer);
-        }
-        return request(request);
+        HttpRequestFactory factory = new GetRequestFactory(url, useragent, referrer);
+        return request(factory.create());
     }
 
     public int post(String url, Map<String, Object> data, PostType dataType) {
@@ -440,7 +440,6 @@ public class ScrapClient implements Closeable, CredentialsProvider {
     public int post(String url, Map<String, Object> data, PostType dataType, String charset, String referrer) {
         clearPreviousRequest();
 
-        HttpPost request = new HttpPost(url);
         HttpEntity entity = null;
 
         if (charset == null) {
@@ -521,11 +520,8 @@ public class ScrapClient implements Closeable, CredentialsProvider {
                 return statusCode = -1;
         }
 
-        request.setEntity(entity);
-        if (referrer != null) {
-            request.addHeader("Referer", referrer);
-        }
-        return request(request);
+        HttpRequestFactory factory = new PostRequestFactory(url, useragent, entity, referrer);
+        return request(factory.create());
     }
 
     protected Map<String, Object> handleUnsupportedEncoding(Map<String, Object> data, Charset detectedCharset) {
