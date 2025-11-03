@@ -88,9 +88,9 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         MULTIPART,
         JSON
     }
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(ScrapClient.class);
-    
+
     private final static ObjectMapper jsonMapper = new ObjectMapper();
 
     public final static String DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0";
@@ -136,7 +136,8 @@ public class ScrapClient implements Closeable, CredentialsProvider {
     class SCliHttpRoutePlanner implements HttpRoutePlanner {
 
         @Override
-        public HttpRoute determineRoute(HttpHost originaltarget, HttpRequest request, HttpContext context) throws HttpException {
+        public HttpRoute determineRoute(HttpHost originaltarget, HttpRequest request, HttpContext context)
+                throws HttpException {
             boolean ssl = "https".equalsIgnoreCase(originaltarget.getSchemeName());
             HttpHost target = routes.getOrDefault(originaltarget, originaltarget);
 
@@ -163,13 +164,12 @@ public class ScrapClient implements Closeable, CredentialsProvider {
                 HttpProxy httpProxy = (HttpProxy) proxy;
 
                 return new HttpRoute(
-                    target,
-                    null,
-                    new HttpHost(httpProxy.getIp(), httpProxy.getPort()),
-                    ssl,
-                    ssl ? RouteInfo.TunnelType.TUNNELLED : RouteInfo.TunnelType.PLAIN,
-                    ssl ? RouteInfo.LayerType.LAYERED : RouteInfo.LayerType.PLAIN
-                );
+                        target,
+                        null,
+                        new HttpHost(httpProxy.getIp(), httpProxy.getPort()),
+                        ssl,
+                        ssl ? RouteInfo.TunnelType.TUNNELLED : RouteInfo.TunnelType.PLAIN,
+                        ssl ? RouteInfo.LayerType.LAYERED : RouteInfo.LayerType.PLAIN);
             }
 
             throw new UnsupportedOperationException("unsupported proxy type : " + proxy);
@@ -177,28 +177,59 @@ public class ScrapClient implements Closeable, CredentialsProvider {
 
     }
 
+    /**
+     * Construtor padrão com configurações default.
+     * Para configurações customizadas, use ScrapClient(ScrapClientConfig).
+     */
     public ScrapClient() {
-        setMaxResponseLength(DEFAULT_MAX_RESPONSE_LENGTH);
+        this(ScrapClientConfig.builder().build());
+    }
 
-        sslConnectionFactory.setInsecure(false);
+    /**
+     * Construtor com configuração customizada usando Builder Pattern.
+     * 
+     * Exemplo:
+     * 
+     * <pre>
+     * ScrapClientConfig config = ScrapClientConfig.builder()
+     *         .userAgent("Custom Agent")
+     *         .timeout(5000)
+     *         .proxy(myProxy)
+     *         .insecureSSL(true)
+     *         .build();
+     * ScrapClient client = new ScrapClient(config);
+     * </pre>
+     * 
+     * @param config configuração imutável do cliente
+     */
+    public ScrapClient(ScrapClientConfig config) {
+        setMaxResponseLength(config.getMaxResponseLength());
+
+        sslConnectionFactory.setInsecure(config.isInsecureSSL());
 
         connManager = new CloseableBasicHttpClientConnectionManager(
-            RegistryBuilder.<ConnectionSocketFactory>create()
-            .register("http", plainConnectionFactory)
-            .register("https", sslConnectionFactory)
-            .build()
-        );
+                RegistryBuilder.<ConnectionSocketFactory>create()
+                        .register("http", plainConnectionFactory)
+                        .register("https", sslConnectionFactory)
+                        .build());
 
         client = HttpClients
-            .custom()
-            .setRoutePlanner(this.new SCliHttpRoutePlanner())
-            .setDefaultCredentialsProvider(this)
-            .setDefaultCookieStore(basicCookieStore)
-            .setConnectionReuseStrategy(this.new SCliConnectionReuseStrategy())
-            .setConnectionManager(connManager)
-            .build();
+                .custom()
+                .setRoutePlanner(this.new SCliHttpRoutePlanner())
+                .setDefaultCredentialsProvider(this)
+                .setDefaultCookieStore(basicCookieStore)
+                .setConnectionReuseStrategy(this.new SCliConnectionReuseStrategy())
+                .setConnectionManager(connManager)
+                .build();
 
-        setTimeout(timeoutMS);
+        // Aplicar configurações do config
+        this.useragent = config.getUserAgent();
+        setTimeout(config.getTimeoutMS());
+        if (config.getProxy() != null) {
+            setProxy(config.getProxy());
+        }
+        this.maxRedirect = config.getMaxRedirect();
+        this.requestHeaders.addAll(config.getRequestHeaders());
     }
 
     public void addCookie(Cookie cookie) {
@@ -231,6 +262,14 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         return useragent;
     }
 
+    /**
+     * Define o User-Agent.
+     * 
+     * @param useragent string do user agent
+     * @deprecated Use ScrapClientConfig.Builder ao invés:
+     *             ScrapClient(ScrapClientConfig.builder().userAgent(...).build())
+     */
+    @Deprecated
     public void setUseragent(String useragent) {
         this.useragent = useragent;
     }
@@ -259,6 +298,14 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         return timeoutMS;
     }
 
+    /**
+     * Define o timeout em milissegundos.
+     * 
+     * @param timeoutMS timeout em milissegundos
+     * @deprecated Use ScrapClientConfig.Builder ao invés:
+     *             ScrapClient(ScrapClientConfig.builder().timeout(...).build())
+     */
+    @Deprecated
     public final void setTimeout(Integer timeoutMS) {
         this.timeoutMS = timeoutMS;
         SocketConfig.Builder newSocketConfig = SocketConfig.custom();
@@ -272,6 +319,14 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         return maxResponseLength;
     }
 
+    /**
+     * Define o tamanho máximo da resposta.
+     * 
+     * @param maxResponseLength tamanho máximo em bytes
+     * @deprecated Use ScrapClientConfig.Builder ao invés:
+     *             ScrapClient(ScrapClientConfig.builder().maxResponseLength(...).build())
+     */
+    @Deprecated
     public final void setMaxResponseLength(int maxResponseLength) {
         this.maxResponseLength = maxResponseLength + 1;
         buffer = new byte[this.maxResponseLength];
@@ -407,13 +462,13 @@ public class ScrapClient implements Closeable, CredentialsProvider {
                 try {
                     String json = jsonMapper.writeValueAsString(data);
                     entity = new StringEntity(json, ContentType.create("application/json", "utf-8"));
-                }catch(Exception ex){
+                } catch (Exception ex) {
                     statusCode = -1;
                     exception = ex;
-                    return statusCode;                    
+                    return statusCode;
                 }
                 break;
-            
+
             case URL_ENCODED:
                 List<NameValuePair> formparams = new ArrayList<>();
                 for (Map.Entry<String, Object> entry : data.entrySet()) {
@@ -436,11 +491,11 @@ public class ScrapClient implements Closeable, CredentialsProvider {
 
             case MULTIPART:
                 MultipartEntityBuilder builder = MultipartEntityBuilder.create()
-                    .setCharset(detectedCharset)
-                    .setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+                        .setCharset(detectedCharset)
+                        .setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
 
                 ContentType formDataCT = ContentType.create("form-data", detectedCharset);
-//                formDataCT = ContentType.DEFAULT_TEXT;
+                // formDataCT = ContentType.DEFAULT_TEXT;
 
                 for (Map.Entry<String, Object> entry : data.entrySet()) {
                     String key = entry.getKey();
@@ -452,7 +507,8 @@ public class ScrapClient implements Closeable, CredentialsProvider {
                     } else if (entry.getValue() instanceof ContentBody) {
                         builder = builder.addPart(key, (ContentBody) entry.getValue());
                     } else {
-                        exception = new UnsupportedOperationException("unssuported body type " + entry.getValue().getClass());
+                        exception = new UnsupportedOperationException(
+                                "unssuported body type " + entry.getValue().getClass());
                         return statusCode = -1;
                     }
                 }
@@ -516,15 +572,16 @@ public class ScrapClient implements Closeable, CredentialsProvider {
             try {
                 clearPreviousRequest();
                 executionTimeMS = System.currentTimeMillis();
-                
+
                 HttpClientContext context = HttpClientContext.create();
                 initializeRequest(request, context);
 
                 response = client.execute(request, context);
                 statusCode = response.getStatusLine().getStatusCode();
-                RedirectLocations redirects = context.getAttribute(HttpClientContext.REDIRECT_LOCATIONS, RedirectLocations.class);
-                if(redirects != null && !redirects.isEmpty()){
-                    lastRedirect = redirects.get(redirects.size()-1).toString();
+                RedirectLocations redirects = context.getAttribute(HttpClientContext.REDIRECT_LOCATIONS,
+                        RedirectLocations.class);
+                if (redirects != null && !redirects.isEmpty()) {
+                    lastRedirect = redirects.get(redirects.size() - 1).toString();
                 }
 
                 HttpEntity entity = response.getEntity();
@@ -532,9 +589,8 @@ public class ScrapClient implements Closeable, CredentialsProvider {
 
                 if (contentLength > maxResponseLength) {
                     throw new ResponseTooBigException(
-                        "content length (" + contentLength + ") "
-                        + "is greater than max response leength (" + maxResponseLength + ")"
-                    );
+                            "content length (" + contentLength + ") "
+                                    + "is greater than max response leength (" + maxResponseLength + ")");
                 }
 
                 InputStream stream = entity.getContent();
@@ -542,7 +598,7 @@ public class ScrapClient implements Closeable, CredentialsProvider {
                 int read = 0;
 
                 while (totalRead < maxResponseLength
-                    && (read = stream.read(buffer, totalRead, maxResponseLength - totalRead)) != -1) {
+                        && (read = stream.read(buffer, totalRead, maxResponseLength - totalRead)) != -1) {
                     totalRead += read;
                 }
 
@@ -564,8 +620,8 @@ public class ScrapClient implements Closeable, CredentialsProvider {
             return statusCode;
         }
     }
-    
-    protected void initializeRequest(HttpRequestBase request, HttpClientContext context){
+
+    protected void initializeRequest(HttpRequestBase request, HttpClientContext context) {
         if (request.getFirstHeader("user-agent") == null) {
             request.setHeader("User-Agent", useragent);
         }
@@ -573,28 +629,28 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         for (Header requestHeader : requestHeaders) {
             request.setHeader(requestHeader);
         }
-        
-        RequestConfig.Builder configBuilder = 
-            RequestConfig.copy(request.getConfig() == null ? RequestConfig.DEFAULT : request.getConfig());
-        
+
+        RequestConfig.Builder configBuilder = RequestConfig
+                .copy(request.getConfig() == null ? RequestConfig.DEFAULT : request.getConfig());
+
         if (timeoutMS != null) {
             configBuilder.setConnectTimeout(timeoutMS);
             configBuilder.setConnectionRequestTimeout(timeoutMS);
             configBuilder.setSocketTimeout(timeoutMS);
         }
-        
-        if(maxRedirect == 0){
-             configBuilder.setRedirectsEnabled(false);
+
+        if (maxRedirect == 0) {
+            configBuilder.setRedirectsEnabled(false);
         } else {
             configBuilder.setMaxRedirects(maxRedirect);
         }
-         
+
         RequestConfig config = configBuilder.build();
-        
+
         context.setAttribute(HttpClientContext.REQUEST_CONFIG, config);
         request.setConfig(config);
     }
-    
+
     public void closeResponse() {
         if (response != null) {
             try {
@@ -634,9 +690,9 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         if (proxy != null && proxy instanceof HttpProxy) {
             HttpProxy httpProxy = (HttpProxy) proxy;
             if (httpProxy.getIp().equals(authscope.getHost())
-                && httpProxy.getPort() == authscope.getPort()
-                && httpProxy.getUsername() != null
-                && httpProxy.getPassword() != null) {
+                    && httpProxy.getPort() == authscope.getPort()
+                    && httpProxy.getUsername() != null
+                    && httpProxy.getPassword() != null) {
                 return new UsernamePasswordCredentials(httpProxy.getUsername(), httpProxy.getPassword());
             }
         }
@@ -671,6 +727,14 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         return sslConnectionFactory.isInsecure();
     }
 
+    /**
+     * Define se deve aceitar certificados SSL inválidos.
+     * 
+     * @param insecureSSL true para aceitar certificados inválidos
+     * @deprecated Use ScrapClientConfig.Builder ao invés:
+     *             ScrapClient(ScrapClientConfig.builder().insecureSSL(...).build())
+     */
+    @Deprecated
     public void setInsecureSSL(boolean insecureSSL) {
         this.sslConnectionFactory.setInsecure(insecureSSL);
     }
@@ -682,17 +746,17 @@ public class ScrapClient implements Closeable, CredentialsProvider {
     public void setMaxRedirect(int maxRedirect) {
         this.maxRedirect = maxRedirect;
     }
-    
-    public void enableFollowRedirect(){
+
+    public void enableFollowRedirect() {
         maxRedirect = 10;
     }
-    
-    public void disableFollowRedirect(){
+
+    public void disableFollowRedirect() {
         maxRedirect = 0;
     }
 
     public String getLastRedirect() {
         return lastRedirect;
     }
-    
+
 }
