@@ -17,14 +17,10 @@ import com.google.inject.Singleton;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import com.querydsl.sql.Configuration;
 import com.serphacker.serposcope.di.CaptchaSolverFactory;
-import com.serphacker.serposcope.di.GoogleScraperFactory;
 import com.serphacker.serposcope.di.db.ConfigurationProvider;
 import com.serphacker.serposcope.di.db.DataSourceProvider;
 import com.serphacker.serposcope.di.TaskFactory;
 import com.serphacker.serposcope.models.base.Config;
-import com.serphacker.serposcope.scraper.captcha.solver.CaptchaSolver;
-import com.serphacker.serposcope.scraper.google.scraper.RandomGScraper;
-import com.serphacker.serposcope.scraper.http.ScrapClient;
 import com.serphacker.serposcope.task.TaskManager;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -42,6 +38,8 @@ import ninja.conf.NinjaClassicModule;
 import serposcope.services.CronService;
 //import serposcope.services.CronSrv;
 import ninja.utils.NinjaProperties;
+import com.serphacker.serposcope.scraper.strategy.Engine;
+import com.serphacker.serposcope.scraper.strategy.ScraperModule;
 
 
 
@@ -82,12 +80,17 @@ public class Module extends FrameworkModule {
         bind(DataSource.class).toProvider(new DataSourceProvider(conf.dbUrl,conf.dbDebug)).in(Singleton.class);
         bind(TaskManager.class).in(Singleton.class);
         install(new FactoryModuleBuilder().build(TaskFactory.class));
-        
+
         // debugging
+        String engineId = conf.getScraperEngine();
         if(NinjaModeHelper.determineModeFromSystemPropertiesOrProdIfNotSet().equals(NinjaMode.dev)){
             bind(CaptchaSolverFactory.class).toInstance((CaptchaSolverFactory) (Config config) -> null);
-            bind(GoogleScraperFactory.class).toInstance((GoogleScraperFactory) (ScrapClient http, CaptchaSolver solver) -> new RandomGScraper(http, solver));
+            if(engineId == null || engineId.isEmpty()){
+                engineId = Engine.RANDOM.name();
+            }
         }
+
+        install(new ScraperModule(engineId));
     }
     
     protected void beforeModuleConfigure(){

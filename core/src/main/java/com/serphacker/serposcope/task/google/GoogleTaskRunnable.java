@@ -9,10 +9,9 @@ package com.serphacker.serposcope.task.google;
 
 import com.serphacker.serposcope.models.google.GoogleSettings;
 import com.serphacker.serposcope.models.google.GoogleSearch;
-import com.serphacker.serposcope.scraper.google.GoogleScrapSearch;
 import com.serphacker.serposcope.scraper.google.GoogleScrapResult;
 import static com.serphacker.serposcope.scraper.google.GoogleScrapResult.Status.OK;
-import com.serphacker.serposcope.scraper.google.scraper.GoogleScraper;
+import com.serphacker.serposcope.scraper.http.ScrapClient;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +19,10 @@ import com.serphacker.serposcope.scraper.http.proxy.ScrapProxy;
 import com.serphacker.serposcope.task.google.GoogleTask;
 import java.util.List;
 import org.apache.http.cookie.Cookie;
+import com.serphacker.serposcope.scraper.service.RankFetchService;
+import com.serphacker.serposcope.scraper.strategy.mapping.ResultMapper;
+import com.serphacker.serposcope.scraper.strategy.mapping.ScraperResult;
+import com.serphacker.serposcope.scraper.strategy.mapping.SearchRequest;
 
 public class GoogleTaskRunnable implements Runnable {
 
@@ -27,12 +30,14 @@ public class GoogleTaskRunnable implements Runnable {
 //    public final static int MAX_FETCH_TRY = 3;
 
     GoogleTask controller;
-    
-    GoogleScraper scraper;
+
+    RankFetchService rankService;
+    ScrapClient httpClient;
 
     public GoogleTaskRunnable(GoogleTask controller) {
         this.controller = controller;
-        scraper = controller.genScraper();
+        rankService = controller.genScraper();
+        httpClient = rankService.getHttpClient();
     }
     
     boolean cookiesStickToProxy = true;
@@ -54,7 +59,7 @@ public class GoogleTaskRunnable implements Runnable {
                 }
                 
                 if(cookiesStickToProxy && proxy != null){
-                    List<Cookie> cookies = scraper.getHttp().getCookies();
+                    List<Cookie> cookies = httpClient.getCookies();
                     if(cookies != null){
                         proxy.setAttr("cookies", cookies);
                     }
@@ -65,13 +70,13 @@ public class GoogleTaskRunnable implements Runnable {
                     LOG.warn("no more proxy, stopping the thread");
                     break;
                 }
-                scraper.getHttp().setProxy(proxy);
-                
+                httpClient.setProxy(proxy);
+
                 if(cookiesStickToProxy){
-                    scraper.getHttp().clearCookies();
+                    httpClient.clearCookies();
                     List<Cookie> cookies = proxy.getAttr("cookies", List.class);
                     if(cookies != null){
-                        scraper.getHttp().addCookies(proxy.getAttr("cookies", List.class));
+                        httpClient.addCookies(proxy.getAttr("cookies", List.class));
                     }
                 }
 
@@ -96,7 +101,8 @@ public class GoogleTaskRunnable implements Runnable {
                     new Object[]{search.getKeyword(), searchTry, controller.getSearchDone(), controller.totalSearch});
 
                 try {
-                    res = scraper.scrap(getScrapConfig(controller.googleOptions, search));
+                    ScraperResult scraperResult = rankService.run(buildSearchRequest(controller.googleOptions, search));
+                    res = ResultMapper.toLegacy(scraperResult);
                 } catch (InterruptedException ex) {
                     LOG.error("interrupted while scraping, aborting the thread");
                     break;
@@ -130,22 +136,18 @@ public class GoogleTaskRunnable implements Runnable {
         LOG.info("google thread stopped");
     }
 
-    protected GoogleScrapSearch getScrapConfig(GoogleSettings options, GoogleSearch search) {
-        GoogleScrapSearch scrapSearch = new GoogleScrapSearch();
-        
-        // options.getFetchRetry(); // TODO
-        scrapSearch.setPagePauseMS(options.getMinPauseBetweenPageSec()*1000l, options.getMaxPauseBetweenPageSec()*1000l);
-        scrapSearch.setPages(options.getPages());
-        scrapSearch.setResultPerPage(options.getResultPerPage());
-        
-        scrapSearch.setCustomParameters(search.getCustomParameters());
-        scrapSearch.setDatacenter(search.getDatacenter());
-        scrapSearch.setDevice(search.getDevice());
-        scrapSearch.setKeyword(search.getKeyword());
-        scrapSearch.setCountry(search.getCountry());
-        scrapSearch.setLocal(search.getLocal());
-        
-        return scrapSearch;
+    protected SearchRequest buildSearchRequest(GoogleSettings options, GoogleSearch search) {
+        return SearchRequest.builder()
+            .keyword(search.getKeyword())
+            .country(search.getCountry())
+            .datacenter(search.getDatacenter())
+            .device(search.getDevice())
+            .local(search.getLocal())
+            .customParameters(search.getCustomParameters())
+            .pages(options.getPages())
+            .resultsPerPage(options.getResultPerPage())
+            .pause(options.getMinPauseBetweenPageSec() * 1000L, options.getMaxPauseBetweenPageSec() * 1000L)
+            .build();
     }
     public static final long serialVersionUID = 0L;
 

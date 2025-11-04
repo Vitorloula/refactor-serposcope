@@ -12,7 +12,6 @@ import com.google.inject.assistedinject.Assisted;
 import com.serphacker.serposcope.db.google.GoogleDB;
 import com.serphacker.serposcope.di.CaptchaSolverFactory;
 import com.serphacker.serposcope.di.ScrapClientFactory;
-//import com.serphacker.serposcope.di.ScraperFactory;
 import com.serphacker.serposcope.models.base.Proxy;
 import com.serphacker.serposcope.models.base.Run;
 import com.serphacker.serposcope.models.google.GoogleSettings;
@@ -23,7 +22,6 @@ import com.serphacker.serposcope.models.google.GoogleSerpEntry;
 import com.serphacker.serposcope.models.google.GoogleTarget;
 import com.serphacker.serposcope.scraper.captcha.solver.CaptchaSolver;
 import com.serphacker.serposcope.scraper.google.GoogleScrapResult;
-import com.serphacker.serposcope.scraper.google.scraper.GoogleScraper;
 import com.serphacker.serposcope.scraper.http.ScrapClient;
 import com.serphacker.serposcope.scraper.http.proxy.DirectNoProxy;
 import com.serphacker.serposcope.scraper.http.proxy.ProxyRotator;
@@ -38,7 +36,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.serphacker.serposcope.scraper.http.proxy.ScrapProxy;
 import java.util.stream.Collectors;
-import com.serphacker.serposcope.di.GoogleScraperFactory;
+import com.serphacker.serposcope.scraper.service.RankFetchService;
+import com.serphacker.serposcope.scraper.strategy.Engine;
+import com.serphacker.serposcope.scraper.strategy.ScraperFactory;
 import com.serphacker.serposcope.models.google.GoogleBest;
 import com.serphacker.serposcope.models.google.GoogleTargetSummary;
 import java.io.IOException;
@@ -49,7 +49,8 @@ public class GoogleTask extends AbstractTask {
 
     protected static final Logger LOG = LoggerFactory.getLogger(GoogleTask.class);
     
-    GoogleScraperFactory googleScraperFactory;
+    ScraperFactory scraperFactory;
+    Engine scraperEngine;
     CaptchaSolverFactory captchaSolverFactory;
     ScrapClientFactory scrapClientFactory;
     
@@ -78,14 +79,16 @@ public class GoogleTask extends AbstractTask {
     
     @Inject
     public GoogleTask(
-        GoogleScraperFactory googleScraperFactory,
+        ScraperFactory scraperFactory,
+        Engine scraperEngine,
         CaptchaSolverFactory captchaSolverFactory,
         ScrapClientFactory scrapClientFactory,
         GoogleDB googleDB,
         @Assisted Run run
     ){
         super(run);
-        this.googleScraperFactory = googleScraperFactory;
+        this.scraperFactory = scraperFactory;
+        this.scraperEngine = scraperEngine == null ? Engine.GOOGLE_HTML : scraperEngine;
         this.captchaSolverFactory = captchaSolverFactory;
         this.scrapClientFactory = scrapClientFactory;
         this.googleDB = googleDB;
@@ -321,10 +324,11 @@ public class GoogleTask extends AbstractTask {
         googleDB.targetSummary.insert(summariesByTarget.values());
     }
     
-    protected GoogleScraper genScraper(){
-        return googleScraperFactory.get(
-            scrapClientFactory.get(httpUserAgent, httpTimeoutMS),
-            solver
+    protected RankFetchService genScraper(){
+        ScrapClient client = scrapClientFactory.get(httpUserAgent, httpTimeoutMS);
+        return new RankFetchService(
+            scraperFactory.create(scraperEngine, client, solver),
+            client
         );
     }
 

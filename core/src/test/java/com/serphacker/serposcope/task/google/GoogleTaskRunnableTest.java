@@ -13,7 +13,6 @@ import ch.qos.logback.core.Appender;
 import com.serphacker.serposcope.models.google.GoogleSettings;
 import com.serphacker.serposcope.models.google.GoogleSearch;
 import com.serphacker.serposcope.scraper.google.GoogleScrapResult;
-import com.serphacker.serposcope.scraper.google.scraper.GoogleScraper;
 import com.serphacker.serposcope.scraper.http.ScrapClient;
 import com.serphacker.serposcope.scraper.http.proxy.BindProxy;
 import com.serphacker.serposcope.scraper.http.proxy.ProxyRotator;
@@ -44,6 +43,8 @@ import java.util.ArrayList;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import com.serphacker.serposcope.scraper.service.RankFetchService;
+import com.serphacker.serposcope.scraper.strategy.mapping.ResultMapper;
 
 /**
  *
@@ -54,6 +55,8 @@ public class GoogleTaskRunnableTest {
 
     GoogleTask taskController;
     GoogleTaskRunnable runnable;
+    RankFetchService rankService;
+    ScrapClient httpClient;
     ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
     Appender mockAppender;
 
@@ -84,12 +87,17 @@ public class GoogleTaskRunnableTest {
         taskController = mock(GoogleTask.class);
         taskController.rotator = new ProxyRotator(Collections.EMPTY_LIST);
 //        taskController.searchDone = new AtomicInteger();
-        taskController.totalSearch = 0;        
+        taskController.totalSearch = 0;
         taskController.googleOptions = new GoogleSettings();
-        
+
+        rankService = mock(RankFetchService.class);
+        httpClient = mock(ScrapClient.class);
+        when(rankService.getHttpClient()).thenReturn(httpClient);
+        when(taskController.genScraper()).thenReturn(rankService);
+
         runnable = new GoogleTaskRunnable(taskController);
-        runnable.scraper = mock(GoogleScraper.class);
-        when(runnable.scraper.getHttp()).thenReturn(mock(ScrapClient.class));
+        runnable.rankService = rankService;
+        runnable.httpClient = httpClient;
     }
 
     @Test
@@ -137,7 +145,7 @@ public class GoogleTaskRunnableTest {
         taskController.searches.add(new GoogleSearch("keyword"));
 
         when(taskController.shouldStop()).thenReturn(false, true);
-        when(runnable.scraper.scrap(any())).thenThrow(new UnsupportedOperationException("lolex"));
+        when(rankService.run(any())).thenThrow(new UnsupportedOperationException("lolex"));
         
         runnable.run();
         assertLogged("unhandled exception, aborting the thread");
@@ -159,7 +167,7 @@ public class GoogleTaskRunnableTest {
         
         GoogleScrapResult scrapResult = new GoogleScrapResult(GoogleScrapResult.Status.OK, new ArrayList<>());
         
-        when(runnable.scraper.scrap(any())).thenReturn(scrapResult);
+        when(rankService.run(any())).thenReturn(ResultMapper.fromLegacy(scrapResult));
         
 //        taskController.scaperFactory = mock(ScraperFactory.class);
 //        when(taskController.scaperFactory.getGoogleScraper(any())).thenReturn(scraper);
@@ -186,7 +194,7 @@ public class GoogleTaskRunnableTest {
         
         GoogleScrapResult okResult = new GoogleScrapResult(GoogleScrapResult.Status.OK, new ArrayList<>());
         
-        when(runnable.scraper.scrap(any())).thenReturn(networkError, networkError, okResult);
+        when(rankService.run(any())).thenReturn(ResultMapper.fromLegacy(networkError), ResultMapper.fromLegacy(networkError), ResultMapper.fromLegacy(okResult));
         
 //        taskController.scaperFactory = mock(ScraperFactory.class);
 //        when(taskController.scaperFactory.getGoogleScraper(any())).thenReturn(scraper);
@@ -211,7 +219,7 @@ public class GoogleTaskRunnableTest {
         GoogleScrapResult networkError = new GoogleScrapResult(GoogleScrapResult.Status.ERROR_NETWORK, new ArrayList<>());
         
         
-        when(runnable.scraper.scrap(any())).thenReturn(networkError);
+        when(rankService.run(any())).thenReturn(ResultMapper.fromLegacy(networkError));
         
 //        taskController.scaperFactory = mock(ScraperFactory.class);
 //        when(taskController.scaperFactory.getGoogleScraper(any())).thenReturn(scraper);
@@ -238,7 +246,7 @@ public class GoogleTaskRunnableTest {
         
         GoogleScrapResult networkError = new GoogleScrapResult(GoogleScrapResult.Status.ERROR_NETWORK, new ArrayList<>());
         
-        when(runnable.scraper.scrap(any())).thenReturn(networkError);
+        when(rankService.run(any())).thenReturn(ResultMapper.fromLegacy(networkError));
         
 //        taskController.scaperFactory = mock(ScraperFactory.class);
 //        when(taskController.scaperFactory.getGoogleScraper(any())).thenReturn(scraper);

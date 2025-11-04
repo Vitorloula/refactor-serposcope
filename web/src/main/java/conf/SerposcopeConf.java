@@ -138,6 +138,14 @@ public class SerposcopeConf {
         LOG.info("serposcope.listenAddress    : " + listenAddress);
         LOG.info("serposcope.listenPort       : " + listenPort);
     }
+
+    public String getProperty(String key, String defaultValue) {
+        return props.getProperty(key, defaultValue);
+    }
+
+    public String getScraperEngine() {
+        return getProperty("serposcope.scraper.engine", null);
+    }
     
     public String dumpEnv(){
         return 

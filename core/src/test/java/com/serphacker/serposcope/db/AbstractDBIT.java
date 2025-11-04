@@ -17,6 +17,7 @@ import com.querydsl.sql.Configuration;
 import com.serphacker.serposcope.db.base.BaseDB;
 import com.serphacker.serposcope.di.db.ConfigurationProvider;
 import com.serphacker.serposcope.di.db.DataSourceProvider;
+import com.serphacker.serposcope.scraper.strategy.ScraperModule;
 import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,6 +56,7 @@ public class AbstractDBIT {
                 bind(Configuration.class).toProvider(new ConfigurationProvider(getDbUrl())).in(Singleton.class);
             }
         });
+        lists.add(new ScraperModule(null));
         return lists;
     }
     
