@@ -11,9 +11,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-/**
- * Default implementation that reproduces the legacy SERP parsing logic.
- */
 public class DefaultSerpParsingStrategy implements SerpParsingStrategy {
 
     @Override

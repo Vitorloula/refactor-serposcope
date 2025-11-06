@@ -11,9 +11,6 @@ import com.serphacker.serposcope.scraper.http.ScraperHttpClient;
 import com.serphacker.serposcope.scraper.http.adapter.ScrapClientAdapter;
 import com.serphacker.serposcope.scraper.http.proxy.ScrapProxy;
 
-/**
- * Facade that exposes simplified operations to configure and run scrapers.
- */
 public class ScraperFacade {
 
     private final ScraperHttpClient httpClient;

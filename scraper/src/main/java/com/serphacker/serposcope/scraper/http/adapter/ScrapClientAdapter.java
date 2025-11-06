@@ -8,9 +8,6 @@ import java.util.Map;
 import org.apache.http.HttpHost;
 import org.apache.http.cookie.Cookie;
 
-/**
- * Adapter that exposes {@link ScrapClient} through the {@link ScraperHttpClient} interface.
- */
 public class ScrapClientAdapter implements ScraperHttpClient {
 
     private final ScrapClient delegate;

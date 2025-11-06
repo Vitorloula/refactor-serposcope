@@ -13,9 +13,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Configuração imutável para ScrapClient (Builder Pattern)
- */
 public class ScrapClientConfig {
 
     private final String userAgent;

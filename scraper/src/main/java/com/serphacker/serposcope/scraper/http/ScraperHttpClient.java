@@ -6,9 +6,6 @@ import java.util.Map;
 import org.apache.http.HttpHost;
 import org.apache.http.cookie.Cookie;
 
-/**
- * Abstraction over the HTTP client used by the scraper.
- */
 public interface ScraperHttpClient extends Closeable {
 
     ScrapProxy getProxy();
