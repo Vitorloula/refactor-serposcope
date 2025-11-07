@@ -15,26 +15,22 @@ import com.serphacker.serposcope.scraper.http.extensions.ScrapClientSocksAuthent
 import com.serphacker.serposcope.scraper.http.factory.GetRequestFactory;
 import com.serphacker.serposcope.scraper.http.factory.HttpRequestFactory;
 import com.serphacker.serposcope.scraper.http.factory.PostRequestFactory;
-import com.serphacker.serposcope.scraper.http.proxy.BindProxy;
 import com.serphacker.serposcope.scraper.http.proxy.DirectNoProxy;
 import com.serphacker.serposcope.scraper.http.proxy.HttpProxy;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -42,47 +38,28 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.conn.routing.HttpRoute;
-import org.apache.http.conn.routing.HttpRoutePlanner;
-import org.apache.http.conn.routing.RouteInfo;
 import org.apache.http.cookie.Cookie;
-import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.serphacker.serposcope.scraper.http.proxy.ScrapProxy;
 import com.serphacker.serposcope.scraper.http.proxy.SocksProxy;
 import com.serphacker.serposcope.scraper.utils.EncodeUtils;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.ContentBody;
-import org.apache.http.impl.DefaultConnectionReuseStrategy;
 import org.apache.http.impl.client.RedirectLocations;
-import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.entity.ContentType;
 
 public class ScrapClient implements Closeable, CredentialsProvider {
-
-    public enum PostType {
-        URL_ENCODED,
-        MULTIPART,
-        JSON
-    }
 
     private static final Logger LOG = LoggerFactory.getLogger(ScrapClient.class);
 
@@ -116,68 +93,12 @@ public class ScrapClient implements Closeable, CredentialsProvider {
     Exception exception;
     String lastRedirect;
 
-    class SCliConnectionReuseStrategy extends DefaultConnectionReuseStrategy {
-
-        @Override
-        public boolean keepAlive(HttpResponse response, HttpContext context) {
-            if (!proxyChangedSinceLastRequest && (proxy == null || (proxy instanceof BindProxy))) {
-                return super.keepAlive(response, context);
-            } else {
-                return false;
-            }
-        }
-    }
-
-    class SCliHttpRoutePlanner implements HttpRoutePlanner {
-
-        @Override
-        public HttpRoute determineRoute(HttpHost originaltarget, HttpRequest request, HttpContext context)
-                throws HttpException {
-            boolean ssl = "https".equalsIgnoreCase(originaltarget.getSchemeName());
-            HttpHost target = routes.getOrDefault(originaltarget, originaltarget);
-
-            if (proxy == null) {
-                return new HttpRoute(target);
-            }
-
-            if (proxy instanceof SocksProxy) {
-                SocksProxy socksProxy = (SocksProxy) proxy;
-                context.setAttribute("proxy.socks", new InetSocketAddress(socksProxy.getIp(), socksProxy.getPort()));
-                return new HttpRoute(target);
-            }
-
-            if (proxy instanceof BindProxy) {
-                BindProxy bindProxy = (BindProxy) proxy;
-                try {
-                    return new HttpRoute(target, InetAddress.getByName(bindProxy.ip), ssl);
-                } catch (UnknownHostException cause) {
-                    throw new HttpException("invalid bind ip", cause);
-                }
-            }
-
-            if (proxy instanceof HttpProxy) {
-                HttpProxy httpProxy = (HttpProxy) proxy;
-
-                return new HttpRoute(
-                        target,
-                        null,
-                        new HttpHost(httpProxy.getIp(), httpProxy.getPort()),
-                        ssl,
-                        ssl ? RouteInfo.TunnelType.TUNNELLED : RouteInfo.TunnelType.PLAIN,
-                        ssl ? RouteInfo.LayerType.LAYERED : RouteInfo.LayerType.PLAIN);
-            }
-
-            throw new UnsupportedOperationException("unsupported proxy type : " + proxy);
-        }
-
-    }
-
     public ScrapClient() {
         this(ScrapClientConfig.builder().build());
     }
 
     public ScrapClient(ScrapClientConfig config) {
-        setMaxResponseLength(config.getMaxResponseLength());
+        applyMaxResponseLength(config.getMaxResponseLength());
 
         sslConnectionFactory.setInsecure(config.isInsecureSSL());
 
@@ -189,10 +110,11 @@ public class ScrapClient implements Closeable, CredentialsProvider {
 
         client = HttpClients
                 .custom()
-                .setRoutePlanner(this.new SCliHttpRoutePlanner())
+                .setRoutePlanner(new ScrapClientRoutePlanner(routes, () -> proxy))
                 .setDefaultCredentialsProvider(this)
                 .setDefaultCookieStore(basicCookieStore)
-                .setConnectionReuseStrategy(this.new SCliConnectionReuseStrategy())
+                .setConnectionReuseStrategy(
+                        new ScrapClientConnectionReuseStrategy(() -> proxyChangedSinceLastRequest, () -> proxy))
                 .setConnectionManager(connManager)
                 .build();
 
@@ -236,9 +158,8 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         return useragent;
     }
 
-    @Deprecated
-    public void setUseragent(String useragent) {
-        this.useragent = useragent;
+    public void setUserAgent(String userAgent) {
+        this.useragent = userAgent;
     }
 
     public void setProxy(ScrapProxy proxy) {
@@ -265,7 +186,6 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         return timeoutMS;
     }
 
-    @Deprecated
     public final void setTimeout(Integer timeoutMS) {
         this.timeoutMS = timeoutMS;
         SocketConfig.Builder newSocketConfig = SocketConfig.custom();
@@ -279,8 +199,15 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         return maxResponseLength;
     }
 
-    @Deprecated
-    public final void setMaxResponseLength(int maxResponseLength) {
+    public int getMaxRedirect() {
+        return maxRedirect;
+    }
+
+    public boolean isInsecureSSL() {
+        return sslConnectionFactory.isInsecure();
+    }
+
+    private void applyMaxResponseLength(int maxResponseLength) {
         this.maxResponseLength = maxResponseLength + 1;
         buffer = new byte[this.maxResponseLength];
     }
@@ -375,7 +302,10 @@ public class ScrapClient implements Closeable, CredentialsProvider {
     }
 
     public int get(String url, String referrer) {
-        HttpRequestFactory factory = new GetRequestFactory(url, useragent, referrer);
+        return execute(new GetRequestFactory(url, useragent, referrer));
+    }
+
+    private int execute(HttpRequestFactory factory) {
         return request(factory.create());
     }
 
@@ -390,106 +320,51 @@ public class ScrapClient implements Closeable, CredentialsProvider {
     public int post(String url, Map<String, Object> data, PostType dataType, String charset, String referrer) {
         clearPreviousRequest();
 
-        HttpEntity entity = null;
+        Charset resolvedCharset = resolveCharset(charset);
+        Map<String, Object> sanitizedData = sanitizePostData(data, resolvedCharset);
 
-        if (charset == null) {
-            charset = "utf-8";
-        }
-
-        Charset detectedCharset = null;
         try {
-            detectedCharset = Charset.forName(charset);
+            HttpEntity entity = dataType.createEntity(sanitizedData, resolvedCharset, jsonMapper);
+            return execute(new PostRequestFactory(url, useragent, entity, referrer));
         } catch (Exception ex) {
-            LOG.warn("invalid charset name {}, switching to utf-8");
-            detectedCharset = Charset.forName("utf-8");
+            statusCode = -1;
+            exception = ex;
+            return statusCode;
         }
-
-        data = handleUnsupportedEncoding(data, detectedCharset);
-
-        switch (dataType) {
-            case JSON:
-                try {
-                    String json = jsonMapper.writeValueAsString(data);
-                    entity = new StringEntity(json, ContentType.create("application/json", "utf-8"));
-                } catch (Exception ex) {
-                    statusCode = -1;
-                    exception = ex;
-                    return statusCode;
-                }
-                break;
-
-            case URL_ENCODED:
-                List<NameValuePair> formparams = new ArrayList<>();
-                for (Map.Entry<String, Object> entry : data.entrySet()) {
-                    if (entry.getValue() instanceof String) {
-                        formparams.add(new BasicNameValuePair(entry.getKey(), (String) entry.getValue()));
-                    } else {
-                        LOG.warn("trying to url encode non string data");
-                        formparams.add(new BasicNameValuePair(entry.getKey(), entry.getValue().toString()));
-                    }
-                }
-
-                try {
-                    entity = new UrlEncodedFormEntity(formparams, detectedCharset);
-                } catch (Exception ex) {
-                    statusCode = -1;
-                    exception = ex;
-                    return statusCode;
-                }
-                break;
-
-            case MULTIPART:
-                MultipartEntityBuilder builder = MultipartEntityBuilder.create()
-                        .setCharset(detectedCharset)
-                        .setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-
-                ContentType formDataCT = ContentType.create("form-data", detectedCharset);
-                // formDataCT = ContentType.DEFAULT_TEXT;
-
-                for (Map.Entry<String, Object> entry : data.entrySet()) {
-                    String key = entry.getKey();
-
-                    if (entry.getValue() instanceof String) {
-                        builder = builder.addTextBody(key, (String) entry.getValue(), formDataCT);
-                    } else if (entry.getValue() instanceof byte[]) {
-                        builder = builder.addBinaryBody(key, (byte[]) entry.getValue());
-                    } else if (entry.getValue() instanceof ContentBody) {
-                        builder = builder.addPart(key, (ContentBody) entry.getValue());
-                    } else {
-                        exception = new UnsupportedOperationException(
-                                "unssuported body type " + entry.getValue().getClass());
-                        return statusCode = -1;
-                    }
-                }
-
-                entity = builder.build();
-                break;
-
-            default:
-                exception = new UnsupportedOperationException("unspported PostType " + dataType);
-                return statusCode = -1;
-        }
-
-        HttpRequestFactory factory = new PostRequestFactory(url, useragent, entity, referrer);
-        return request(factory.create());
     }
 
-    protected Map<String, Object> handleUnsupportedEncoding(Map<String, Object> data, Charset detectedCharset) {
+    private Charset resolveCharset(String charsetName) {
+        if (charsetName == null || charsetName.isEmpty()) {
+            return StandardCharsets.UTF_8;
+        }
+
+        try {
+            return Charset.forName(charsetName);
+        } catch (Exception ex) {
+            LOG.warn("invalid charset name {}, switching to utf-8", charsetName);
+            return StandardCharsets.UTF_8;
+        }
+    }
+
+    private Map<String, Object> sanitizePostData(Map<String, Object> originalData, Charset charset) {
+        if (originalData == null || originalData.isEmpty()) {
+            return Collections.emptyMap();
+        }
 
         Map<String, Object> cleanedData = new HashMap<>();
-
         boolean hasUnsupportedEncoding = false;
-        for (Map.Entry<String, Object> entry : data.entrySet()) {
+
+        for (Map.Entry<String, Object> entry : originalData.entrySet()) {
             String key = entry.getKey();
             Object value = entry.getValue();
 
-            if (!EncodeUtils.canEncode(key, detectedCharset.name())) {
+            if (!EncodeUtils.canEncode(key, charset.name())) {
                 hasUnsupportedEncoding = true;
                 key = EncodeUtils.forceASCII(key);
             }
 
             if (value instanceof String) {
-                if (!EncodeUtils.canEncode((String) value, detectedCharset.name())) {
+                if (!EncodeUtils.canEncode((String) value, charset.name())) {
                     hasUnsupportedEncoding = true;
                     value = EncodeUtils.forceASCII((String) value);
                 }
@@ -499,7 +374,7 @@ public class ScrapClient implements Closeable, CredentialsProvider {
         }
 
         if (hasUnsupportedEncoding) {
-            LOG.warn("failed to encode some post data to {} forced to ascii", detectedCharset.name());
+            LOG.warn("failed to encode some post data to {} forced to ascii", charset.name());
         }
 
         return cleanedData;
@@ -667,31 +542,6 @@ public class ScrapClient implements Closeable, CredentialsProvider {
 
     public long getExecutionTimeMS() {
         return executionTimeMS;
-    }
-
-    public boolean isInsecureSSL() {
-        return sslConnectionFactory.isInsecure();
-    }
-
-    @Deprecated
-    public void setInsecureSSL(boolean insecureSSL) {
-        this.sslConnectionFactory.setInsecure(insecureSSL);
-    }
-
-    public int getMaxRedirect() {
-        return maxRedirect;
-    }
-
-    public void setMaxRedirect(int maxRedirect) {
-        this.maxRedirect = maxRedirect;
-    }
-
-    public void enableFollowRedirect() {
-        maxRedirect = 10;
-    }
-
-    public void disableFollowRedirect() {
-        maxRedirect = 0;
     }
 
     public String getLastRedirect() {
