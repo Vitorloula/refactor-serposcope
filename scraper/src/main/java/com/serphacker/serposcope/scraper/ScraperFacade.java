@@ -51,7 +51,7 @@ public class ScraperFacade {
 
     public void setUserAgent(String userAgent) {
         if (httpClient != null) {
-            httpClient.setUseragent(userAgent);
+            httpClient.setUserAgent(userAgent);
         }
     }
 

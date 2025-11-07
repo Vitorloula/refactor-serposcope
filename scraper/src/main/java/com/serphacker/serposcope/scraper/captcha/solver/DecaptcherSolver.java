@@ -10,6 +10,7 @@ package com.serphacker.serposcope.scraper.captcha.solver;
 import com.serphacker.serposcope.scraper.captcha.Captcha;
 import static com.serphacker.serposcope.scraper.captcha.Captcha.Error.EXCEPTION;
 import com.serphacker.serposcope.scraper.captcha.CaptchaImage;
+import com.serphacker.serposcope.scraper.http.PostType;
 import com.serphacker.serposcope.scraper.http.ScrapClient;
 import java.io.IOException;
 import java.util.HashMap;
@@ -216,7 +217,7 @@ public class DecaptcherSolver implements CaptchaSolver {
             Answer answer = null;
             int retry = 0;
             while(true){
-                httpStatus = http.post(apiUrl, data, ScrapClient.PostType.MULTIPART);
+                httpStatus = http.post(apiUrl, data, PostType.MULTIPART);
                 answer = Answer.fromResponse(http.getContentAsString());
                 if(!isRetryable(httpStatus, answer)){
                     break;
@@ -315,7 +316,7 @@ public class DecaptcherSolver implements CaptchaSolver {
             data.put("function", "picture_bad2");
             data.put("major_id", split[0]);
             data.put("minor_id", split[1]);
-            return http.post(apiUrl, data, ScrapClient.PostType.MULTIPART) == 200;
+            return http.post(apiUrl, data, PostType.MULTIPART) == 200;
         }catch(Exception ex){
             LOG.warn("exception ", ex);
         }
@@ -349,7 +350,7 @@ public class DecaptcherSolver implements CaptchaSolver {
         try(ScrapClient cli = new ScrapClient()){
             Map<String, Object> map = getMapWithCredentials();
             map.put("function", "balance");
-            int status = cli.post(apiUrl, map, ScrapClient.PostType.URL_ENCODED);
+            int status = cli.post(apiUrl, map, PostType.URL_ENCODED);
             if(status != 200){
                 return null;
             }

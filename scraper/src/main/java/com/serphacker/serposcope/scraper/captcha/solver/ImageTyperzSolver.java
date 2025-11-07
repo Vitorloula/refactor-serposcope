@@ -11,6 +11,7 @@ import com.serphacker.serposcope.scraper.captcha.Captcha;
 import static com.serphacker.serposcope.scraper.captcha.Captcha.Error.EXCEPTION;
 import com.serphacker.serposcope.scraper.captcha.CaptchaImage;
 import com.serphacker.serposcope.scraper.captcha.CaptchaRecaptcha;
+import com.serphacker.serposcope.scraper.http.PostType;
 import com.serphacker.serposcope.scraper.http.ScrapClient;
 import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 import java.io.IOException;
@@ -80,11 +81,11 @@ public class ImageTyperzSolver implements CaptchaSolver {
         if (captcha instanceof CaptchaImage) {
             return solveImage((CaptchaImage) captcha);
         }
-        
-        if (captcha instanceof CaptchaRecaptcha){
+
+        if (captcha instanceof CaptchaRecaptcha) {
             return solveRecaptcha((CaptchaRecaptcha) captcha);
         }
-        
+
         return false;
 
     }
@@ -106,12 +107,13 @@ public class ImageTyperzSolver implements CaptchaSolver {
         captcha.setStatus(Captcha.Status.SUBMITTED);
         try (ScrapClient http = new ScrapClient()) {
             http.setTimeout((int) DEFAULT_TIMEOUT_MS);
-//            http.setInsecureSSL(true);
-//            http.setProxy(new HttpProxy("127.0.0.1", 8080));
+            // http.setInsecureSSL(true);
+            // http.setProxy(new HttpProxy("127.0.0.1", 8080));
             String response;
             int retry = 0;
             while (true) {
-                http.post("http://captchatypers.com/Forms/UploadFileAndGetTextNEWToken.ashx", createTaskMap, ScrapClient.PostType.URL_ENCODED);
+                http.post("http://captchatypers.com/Forms/UploadFileAndGetTextNEWToken.ashx", createTaskMap,
+                        PostType.URL_ENCODED);
                 response = http.getContentAsString();
                 if (!isRetryable(response)) {
                     break;
@@ -170,12 +172,13 @@ public class ImageTyperzSolver implements CaptchaSolver {
         long started = System.currentTimeMillis();
         captcha.setStatus(Captcha.Status.SUBMITTED);
         try (ScrapClient http = new ScrapClient()) {
-//            http.setInsecureSSL(true);
-//            http.setProxy(new HttpProxy("127.0.0.1", 8080));
+            // http.setInsecureSSL(true);
+            // http.setProxy(new HttpProxy("127.0.0.1", 8080));
             String submitResponse;
             int retry = 0;
             while (true) {
-                http.post("http://captchatypers.com/captchaapi/UploadRecaptchaToken.ashx", createTaskMap, ScrapClient.PostType.URL_ENCODED);
+                http.post("http://captchatypers.com/captchaapi/UploadRecaptchaToken.ashx", createTaskMap,
+                        PostType.URL_ENCODED);
                 submitResponse = http.getContentAsString();
                 if (!isRetryable(submitResponse)) {
                     break;
@@ -220,9 +223,8 @@ public class ImageTyperzSolver implements CaptchaSolver {
             while (System.currentTimeMillis() < timeLimit) {
 
                 http.post("http://captchatypers.com/captchaapi/GetRecaptchaTextToken.ashx",
-                    retrieveResponse,
-                    ScrapClient.PostType.URL_ENCODED
-                );
+                        retrieveResponse,
+                        PostType.URL_ENCODED);
 
                 String getTextResponse = http.getContentAsString();
                 if (getTextResponse == null) {
@@ -288,9 +290,9 @@ public class ImageTyperzSolver implements CaptchaSolver {
 
     public boolean isRetryable(String response) {
         boolean retryable = response == null
-            || response.toUpperCase().contains("UNKNOWN")
-            || response.toUpperCase().contains("NOT_DECODED");
-//        LOG.debug("isRetryable ? {} - {}", retryable, response);
+                || response.toUpperCase().contains("UNKNOWN")
+                || response.toUpperCase().contains("NOT_DECODED");
+        // LOG.debug("isRetryable ? {} - {}", retryable, response);
         return retryable;
     }
 
@@ -328,16 +330,17 @@ public class ImageTyperzSolver implements CaptchaSolver {
     }
 
     protected String getRawBalance() {
-        try(ScrapClient cli = new ScrapClient()){
+        try (ScrapClient cli = new ScrapClient()) {
             Map<String, Object> params = new HashMap<>();
             params.put("action", "REQUESTBALANCE");
             params.put("token", apiKey);
-            int status = cli.post("http://captchatypers.com/Forms/RequestBalanceToken.ashx", params, ScrapClient.PostType.URL_ENCODED);
-            if(status != 200){
+            int status = cli.post("http://captchatypers.com/Forms/RequestBalanceToken.ashx", params,
+                    PostType.URL_ENCODED);
+            if (status != 200) {
                 return "";
             }
             return cli.getContentAsString();
-        }catch(Exception ex){
+        } catch (Exception ex) {
             LOG.error("exception", ex);
         }
         return "";
@@ -372,9 +375,9 @@ public class ImageTyperzSolver implements CaptchaSolver {
 
     public static boolean isValidImageExtension(String ext) {
         if (ext.equalsIgnoreCase("jpg")
-            || ext.equalsIgnoreCase("gif")
-            || ext.equalsIgnoreCase("jpeg")
-            || ext.equalsIgnoreCase("png")) {
+                || ext.equalsIgnoreCase("gif")
+                || ext.equalsIgnoreCase("jpeg")
+                || ext.equalsIgnoreCase("png")) {
             return true;
         }
         return false;

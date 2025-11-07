@@ -14,6 +14,7 @@ import static com.serphacker.serposcope.scraper.captcha.Captcha.Error.EXCEPTION;
 
 import com.serphacker.serposcope.scraper.captcha.CaptchaImage;
 import com.serphacker.serposcope.scraper.captcha.CaptchaRecaptcha;
+import com.serphacker.serposcope.scraper.http.PostType;
 import com.serphacker.serposcope.scraper.http.ScrapClient;
 import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 
@@ -34,8 +35,8 @@ public class AntiCaptchaSolver implements CaptchaSolver {
     final static Logger LOG = LoggerFactory.getLogger(AntiCaptchaSolver.class);
 
     final static Configuration JSONPATH_CONF = Configuration.defaultConfiguration()
-        .addOptions(Option.DEFAULT_PATH_LEAF_TO_NULL)
-        .addOptions(Option.SUPPRESS_EXCEPTIONS);
+            .addOptions(Option.DEFAULT_PATH_LEAF_TO_NULL)
+            .addOptions(Option.SUPPRESS_EXCEPTIONS);
 
     public final static long POLLING_PAUSE_MS = 2500l;
     public final static long DEFAULT_TIMEOUT_MS = 180000l;
@@ -134,12 +135,12 @@ public class AntiCaptchaSolver implements CaptchaSolver {
         long started = System.currentTimeMillis();
         captcha.setStatus(Captcha.Status.SUBMITTED);
         try (ScrapClient http = new ScrapClient()) {
-//            http.setInsecureSSL(true);
-//            http.setProxy(new HttpProxy("127.0.0.1", 8080));
+            // http.setInsecureSSL(true);
+            // http.setProxy(new HttpProxy("127.0.0.1", 8080));
             String response;
             int retry = 0;
             while (true) {
-                http.post(apiUrlv2 + "/createTask", createTaskMap, ScrapClient.PostType.JSON);
+                http.post(apiUrlv2 + "/createTask", createTaskMap, PostType.JSON);
                 response = http.getContentAsString();
                 if (!isRetryable(response)) {
                     break;
@@ -210,7 +211,7 @@ public class AntiCaptchaSolver implements CaptchaSolver {
             long timeLimit = System.currentTimeMillis() + timeoutMS;
             while (System.currentTimeMillis() < timeLimit) {
 
-                http.post(apiUrlv2 + "/getTaskResult", getTaskResultMap, ScrapClient.PostType.JSON);
+                http.post(apiUrlv2 + "/getTaskResult", getTaskResultMap, PostType.JSON);
 
                 String res = http.getContentAsString();
                 if (res == null) {
@@ -280,7 +281,7 @@ public class AntiCaptchaSolver implements CaptchaSolver {
 
     public boolean isRetryable(String response) {
         boolean retryable = response == null || response.toUpperCase().contains("ERROR_NO_SLOT_AVAILABLE");
-//        LOG.debug("isRetryable ? {} - {}", retryable, response);
+        // LOG.debug("isRetryable ? {} - {}", retryable, response);
         return retryable;
     }
 
@@ -359,9 +360,9 @@ public class AntiCaptchaSolver implements CaptchaSolver {
 
     public static boolean isValidImageExtension(String ext) {
         if (ext.equalsIgnoreCase("jpg")
-            || ext.equalsIgnoreCase("gif")
-            || ext.equalsIgnoreCase("jpeg")
-            || ext.equalsIgnoreCase("png")) {
+                || ext.equalsIgnoreCase("gif")
+                || ext.equalsIgnoreCase("jpeg")
+                || ext.equalsIgnoreCase("png")) {
             return true;
         }
         return false;

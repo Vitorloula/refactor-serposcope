@@ -12,7 +12,7 @@ public interface ScraperHttpClient extends Closeable {
 
     void setProxy(ScrapProxy proxy);
 
-    void setUseragent(String useragent);
+    void setUserAgent(String userAgent);
 
     void removeRoutes();
 
@@ -22,7 +22,7 @@ public interface ScraperHttpClient extends Closeable {
 
     int get(String url, String referrer);
 
-    int post(String url, Map<String, Object> data, ScrapClient.PostType dataType, String charset, String referrer);
+    int post(String url, Map<String, Object> data, PostType dataType, String charset, String referrer);
 
     Exception getException();
 

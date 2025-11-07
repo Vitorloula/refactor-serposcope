@@ -1,5 +1,6 @@
 package com.serphacker.serposcope.scraper.http.adapter;
 
+import com.serphacker.serposcope.scraper.http.PostType;
 import com.serphacker.serposcope.scraper.http.ScrapClient;
 import com.serphacker.serposcope.scraper.http.ScraperHttpClient;
 import com.serphacker.serposcope.scraper.http.proxy.ScrapProxy;
@@ -34,8 +35,8 @@ public class ScrapClientAdapter implements ScraperHttpClient {
     }
 
     @Override
-    public void setUseragent(String useragent) {
-        delegate.setUseragent(useragent);
+    public void setUserAgent(String userAgent) {
+        delegate.setUserAgent(userAgent);
     }
 
     @Override
@@ -59,7 +60,7 @@ public class ScrapClientAdapter implements ScraperHttpClient {
     }
 
     @Override
-    public int post(String url, Map<String, Object> data, ScrapClient.PostType dataType, String charset, String referrer) {
+    public int post(String url, Map<String, Object> data, PostType dataType, String charset, String referrer) {
         return delegate.post(url, data, dataType, charset, referrer);
     }
 

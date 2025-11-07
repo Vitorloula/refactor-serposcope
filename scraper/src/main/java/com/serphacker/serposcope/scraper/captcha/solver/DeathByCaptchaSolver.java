@@ -12,6 +12,7 @@ import com.serphacker.serposcope.scraper.captcha.Captcha;
 import static com.serphacker.serposcope.scraper.captcha.Captcha.Error.EXCEPTION;
 import com.serphacker.serposcope.scraper.captcha.CaptchaImage;
 import com.serphacker.serposcope.scraper.captcha.CaptchaRecaptcha;
+import com.serphacker.serposcope.scraper.http.PostType;
 import com.serphacker.serposcope.scraper.http.ScrapClient;
 import com.serphacker.serposcope.scraper.http.proxy.HttpProxy;
 import java.io.IOException;
@@ -153,7 +154,7 @@ public class DeathByCaptchaSolver implements CaptchaSolver {
             int httpStatus = 0;
             int retry = 0;
             while (true) {
-                httpStatus = http.post(apiUrl + "captcha", data, ScrapClient.PostType.MULTIPART);
+                httpStatus = http.post(apiUrl + "captcha", data, PostType.MULTIPART);
                 if (!isRetryableStatus(httpStatus)) {
                     break;
                 }
@@ -299,7 +300,7 @@ public class DeathByCaptchaSolver implements CaptchaSolver {
     protected Map<String, String> getUserData() {
         Map<String, String> userData = new HashMap<>();
         try (ScrapClient cli = new ScrapClient()) {
-            int status = cli.post(apiUrl + "user", getMapWithCredentials(), ScrapClient.PostType.URL_ENCODED);
+            int status = cli.post(apiUrl + "user", getMapWithCredentials(), PostType.URL_ENCODED);
             if (status != 200) {
                 return userData;
             }
