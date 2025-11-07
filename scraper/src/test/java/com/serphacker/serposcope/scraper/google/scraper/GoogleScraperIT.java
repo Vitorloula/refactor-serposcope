@@ -13,6 +13,7 @@ import com.serphacker.serposcope.scraper.google.GoogleScrapResult;
 import static com.serphacker.serposcope.scraper.google.GoogleScrapResult.Status.OK;
 import com.serphacker.serposcope.scraper.google.GoogleScrapSearch;
 import com.serphacker.serposcope.scraper.http.ScrapClient;
+import com.serphacker.serposcope.scraper.http.ScraperHttpClient;
 import java.util.List;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -109,7 +110,7 @@ public class GoogleScraperIT {
     
     @Test
     public void testDebugDump(){
-        GoogleScraper scraper = new GoogleScraper(null, null);
+        GoogleScraper scraper = new GoogleScraper((ScraperHttpClient) null, null);
         scraper.debugDump("filename", "test data 2");
     }
 

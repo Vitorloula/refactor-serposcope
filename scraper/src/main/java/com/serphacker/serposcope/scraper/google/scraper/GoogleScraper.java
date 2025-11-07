@@ -15,12 +15,15 @@ import com.serphacker.serposcope.scraper.google.GoogleCountryCode;
 import com.serphacker.serposcope.scraper.google.GoogleScrapResult;
 import com.serphacker.serposcope.scraper.google.GoogleScrapResult.Status;
 import com.serphacker.serposcope.scraper.google.GoogleScrapSearch;
+import com.serphacker.serposcope.scraper.google.scraper.strategy.DefaultSerpParsingStrategy;
+import com.serphacker.serposcope.scraper.google.scraper.strategy.SerpParsingStrategy;
 import com.serphacker.serposcope.scraper.http.ScrapClient;
+import com.serphacker.serposcope.scraper.http.ScraperHttpClient;
+import com.serphacker.serposcope.scraper.http.adapter.ScrapClientAdapter;
 import com.serphacker.serposcope.scraper.http.proxy.DirectNoProxy;
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -29,10 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.apache.http.HttpHost;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.cookie.ClientCookie;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.jsoup.Jsoup;
@@ -42,10 +42,6 @@ import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * not thread safe
- * @author admin
- */
 public class GoogleScraper {
 
     public final static int DEFAULT_MAX_RETRY = 3;
@@ -64,17 +60,30 @@ public class GoogleScraper {
     private static final Logger LOG = LoggerFactory.getLogger(GoogleScraper.class);
 
     int maxRetry = DEFAULT_MAX_RETRY;
-    protected ScrapClient http;
+    protected ScraperHttpClient http;
     protected CaptchaSolver solver;
+    private SerpParsingStrategy parsingStrategy;
     Random random = new Random();
 
     Document lastSerpHtml = null;
     int captchas=0;
 
     public GoogleScraper(ScrapClient client, CaptchaSolver solver) {
-//        this.search = search;
+        this(client, solver, new DefaultSerpParsingStrategy());
+    }
+
+    public GoogleScraper(ScrapClient client, CaptchaSolver solver, SerpParsingStrategy parsingStrategy) {
+        this(client == null ? null : new ScrapClientAdapter(client), solver, parsingStrategy);
+    }
+
+    public GoogleScraper(ScraperHttpClient client, CaptchaSolver solver) {
+        this(client, solver, new DefaultSerpParsingStrategy());
+    }
+
+    public GoogleScraper(ScraperHttpClient client, CaptchaSolver solver, SerpParsingStrategy parsingStrategy) {
         this.http = client;
         this.solver = solver;
+        this.parsingStrategy = parsingStrategy == null ? new DefaultSerpParsingStrategy() : parsingStrategy;
     }
 
     public GoogleScrapResult scrap(GoogleScrapSearch search) throws InterruptedException {
@@ -199,182 +208,19 @@ public class GoogleScraper {
             return Status.ERROR_NETWORK;
         }
 
-        Element resDiv = lastSerpHtml.getElementById("res");
-        if(resDiv != null){
-            return parseSerpLayoutRes(resDiv, urls);
-        }
-
-        final Element mainDiv = lastSerpHtml.getElementById("main");
-        if(mainDiv != null) {
-            return parseSerpLayoutMain(mainDiv, urls);
-        }
-
-        return Status.ERROR_PARSING;
-    }
-
-    protected Status parseSerpLayoutRes(Element resElement, List<String> urls) {
-
-        Elements h3Elts = resElement.select("a > h3");
-        if(h3Elts.isEmpty()) {
-            return parseSerpLayoutResLegacy(resElement, urls);
-        }
-
-        for (Element h3Elt : h3Elts) {
-
-            String link = extractLink(h3Elt.parent());
-            if(link == null){
-                continue;
-            }
-
-            urls.add(link);
-        }
-
-        return Status.OK;
-    }
-
-
-    protected Status parseSerpLayoutResLegacy(Element resElement, List<String> urls) {
-
-        Elements h3Elts = resElement.getElementsByTag("h3");
-        for (Element h3Elt : h3Elts) {
-
-            if(isSiteLinkElement(h3Elt)){
-                continue;
-            }
-
-            String link = extractLink(h3Elt.parent());
-            if(link == null) {
-                link = extractLink(h3Elt.getElementsByTag("a").first());
-            }
-            if(link != null){
-                urls.add(link);
-            }
-        }
-
-        return Status.OK;
-    }
-
-    protected Status parseSerpLayoutMain(Element divElement, List<String> urls) {
-
-        final Elements links = divElement.select(
-            "#main > div > div:first-child > div:first-child > a:first-child," +
-                "#main > div > div:first-child > a:first-child"
-        );
-        if(links.isEmpty()) {
-            return parseSerpLayoutResLegacy(divElement, urls);
-        }
-
-        for (Element link : links) {
-            if(!link.children().isEmpty() && "img".equals(link.child(0).tagName())) {
-                continue;
-            }
-
-            String url = extractLink(link);
-            if(url == null) {
-                continue;
-            }
-
-            urls.add(url);
-        }
-
-        return Status.OK;
+        return parsingStrategy.parse(lastSerpHtml, urls);
     }
 
     protected long parseResultsNumberOnFirstPage(){
-        if(lastSerpHtml == null){
-            return 0;
-        }
-
-        Element resultstStatsDiv = lastSerpHtml.getElementById("resultStats");
-        if(resultstStatsDiv == null){
-            return 0;
-        }
-
-        return extractResultsNumber(resultstStatsDiv.html());
+        return parsingStrategy.parseResultsCount(lastSerpHtml);
     }
-
 
     protected long extractResultsNumber(String html){
-        if(html == null || html.isEmpty()){
-            return 0;
-        }
-        html = html.replaceAll("\\(.+\\)", "");
-        html = html.replaceAll("[^0-9]+", "");
-        if(!html.isEmpty()){
-            return Long.parseLong(html);
-        }
-        return 0;
-    }
-
-    protected boolean isSiteLinkElement(Element element){
-        if(element == null){
-            return false;
-        }
-
-        Elements parents = element.parents();
-        if(parents == null || parents.isEmpty()){
-            return false;
-        }
-
-        for (Element parent : parents) {
-            if(parent.hasClass("mslg") || parent.hasClass("nrg") || parent.hasClass("nrgw")){
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    protected String extractLink(Element element){
-        if(element == null){
-            return null;
-        }
-
-        String attr = element.attr("href");
-        if(attr == null){
-            return null;
-        }
-
-        if ((attr.startsWith("http://www.google") || attr.startsWith("https://www.google"))){
-            if(attr.contains("/aclk?")){
-                return null;
-            }
-        }
-
-        if(attr.startsWith("http://") || attr.startsWith("https://")){
-            return attr;
-        }
-
-        if(attr.startsWith("/url?")){
-            try {
-                List<NameValuePair> parse = URLEncodedUtils.parse(attr.substring(5), StandardCharsets.UTF_8);
-                Map<String,String> map = parse.stream().collect(Collectors.toMap(NameValuePair::getName,NameValuePair::getValue));
-                return map.get("q");
-            }catch(Exception ex){
-                return null;
-            }
-        }
-
-        return null;
+        return parsingStrategy.extractResultsNumber(html);
     }
 
     protected boolean hasNextPage(){
-        if(lastSerpHtml == null){
-            return false;
-        }
-
-        if(lastSerpHtml.getElementById("pnnext") != null){
-            return true;
-        }
-
-        Elements navends = lastSerpHtml.getElementsByClass("navend");
-        if(navends.size() > 1 && navends.last().children().size() > 0 && "a".equals(navends.last().child(0).tagName())){
-            return true;
-        }
-
-        final Elements footerLinks = lastSerpHtml.select("footer a");
-        return footerLinks.stream().filter(e -> e.text().endsWith(">")).findAny().isPresent();
-
+        return parsingStrategy.hasNextPage(lastSerpHtml);
     }
 
     protected String buildRequestUrl(GoogleScrapSearch search, int page){
@@ -698,10 +544,21 @@ public class GoogleScraper {
     }
 
     public ScrapClient getHttp() {
+        if (http instanceof ScrapClientAdapter) {
+            return ((ScrapClientAdapter) http).getDelegate();
+        }
+        return null;
+    }
+
+    public ScraperHttpClient getHttpClient() {
         return http;
     }
 
     public void setHttp(ScrapClient http) {
+        this.http = http == null ? null : new ScrapClientAdapter(http);
+    }
+
+    public void setHttp(ScraperHttpClient http) {
         this.http = http;
     }
 
@@ -719,6 +576,14 @@ public class GoogleScraper {
 
     public void setMaxRetry(int maxRetry) {
         this.maxRetry = maxRetry;
+    }
+
+    public SerpParsingStrategy getParsingStrategy() {
+        return parsingStrategy;
+    }
+
+    public void setParsingStrategy(SerpParsingStrategy parsingStrategy) {
+        this.parsingStrategy = parsingStrategy == null ? new DefaultSerpParsingStrategy() : parsingStrategy;
     }
 
     public Document getLastSerpHtml() {
