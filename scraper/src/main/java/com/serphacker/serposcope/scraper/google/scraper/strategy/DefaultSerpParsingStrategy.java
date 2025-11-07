@@ -71,8 +71,8 @@ public class DefaultSerpParsingStrategy implements SerpParsingStrategy {
 
         Elements navends = document.getElementsByClass("navend");
         if (navends.size() > 1
-            && navends.last().children().size() > 0
-            && "a".equals(navends.last().child(0).tagName())) {
+                && navends.last().children().size() > 0
+                && "a".equals(navends.last().child(0).tagName())) {
             return true;
         }
 
@@ -119,9 +119,8 @@ public class DefaultSerpParsingStrategy implements SerpParsingStrategy {
 
     private Status parseSerpLayoutMain(Element divElement, List<String> urls) {
         Elements links = divElement.select(
-            "#main > div > div:first-child > div:first-child > a:first-child,"
-                + "#main > div > div:first-child > a:first-child"
-        );
+                "#main > div > div:first-child > div:first-child > a:first-child,"
+                        + "#main > div > div:first-child > a:first-child");
         if (links.isEmpty()) {
             return parseSerpLayoutResLegacy(divElement, urls);
         }
@@ -185,7 +184,7 @@ public class DefaultSerpParsingStrategy implements SerpParsingStrategy {
             try {
                 List<NameValuePair> parse = URLEncodedUtils.parse(attr.substring(5), StandardCharsets.UTF_8);
                 Map<String, String> map = parse.stream()
-                    .collect(Collectors.toMap(NameValuePair::getName, NameValuePair::getValue));
+                        .collect(Collectors.toMap(NameValuePair::getName, NameValuePair::getValue));
                 return map.get("q");
             } catch (Exception ex) {
                 return null;
