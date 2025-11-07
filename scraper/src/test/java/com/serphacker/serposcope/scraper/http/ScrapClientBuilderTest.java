@@ -113,31 +113,6 @@ public class ScrapClientBuilderTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation") // Testando retrocompatibilidade propositalmente
-    public void testRetrocompatibilidadeSetters() {
-        // Testa que os setters antigos ainda funcionam (embora deprecated)
-        try (ScrapClient client = new ScrapClient()) {
-
-            // Estes métodos devem funcionar mesmo sendo deprecated
-            client.setUseragent("Old Style Agent");
-            assertEquals("Old Style Agent", client.getUseragent());
-
-            client.setTimeout(7000);
-            assertEquals((Integer) 7000, client.getTimeout());
-
-            client.setMaxResponseLength(3 * 1024 * 1024);
-            // Note: setMaxResponseLength adiciona +1 internamente
-            assertEquals(3 * 1024 * 1024 + 1, client.getMaxResponseLength());
-
-            client.setInsecureSSL(true);
-            assertTrue(client.isInsecureSSL());
-
-        } catch (Exception e) {
-            fail("Setters deprecated deveriam continuar funcionando: " + e.getMessage());
-        }
-    }
-
-    @Test
     public void testConfigCompleta() {
         HttpProxy proxy = new HttpProxy("10.0.0.1", 3128, "user", "pass");
 

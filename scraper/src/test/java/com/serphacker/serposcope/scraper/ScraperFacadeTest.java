@@ -4,6 +4,7 @@ import com.serphacker.serposcope.scraper.google.GoogleScrapResult;
 import com.serphacker.serposcope.scraper.google.GoogleScrapSearch;
 import com.serphacker.serposcope.scraper.google.GoogleScrapResult.Status;
 import com.serphacker.serposcope.scraper.google.scraper.strategy.SerpParsingStrategy;
+import com.serphacker.serposcope.scraper.http.PostType;
 import com.serphacker.serposcope.scraper.http.ScraperHttpClient;
 import com.serphacker.serposcope.scraper.http.proxy.ScrapProxy;
 import java.util.List;
@@ -114,8 +115,8 @@ public class ScraperFacadeTest {
         }
 
         @Override
-        public void setUseragent(String useragent) {
-            this.userAgent = useragent;
+        public void setUserAgent(String userAgent) {
+            this.userAgent = userAgent;
         }
 
         @Override
@@ -139,7 +140,7 @@ public class ScraperFacadeTest {
         }
 
         @Override
-        public int post(String url, Map<String, Object> data, com.serphacker.serposcope.scraper.http.ScrapClient.PostType dataType, String charset, String referrer) {
+        public int post(String url, Map<String, Object> data, PostType dataType, String charset, String referrer) {
             return 0;
         }
 

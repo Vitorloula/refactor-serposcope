@@ -13,6 +13,7 @@ import com.serphacker.serposcope.scraper.google.GoogleScrapResult;
 import static com.serphacker.serposcope.scraper.google.GoogleScrapResult.Status.OK;
 import com.serphacker.serposcope.scraper.google.GoogleScrapSearch;
 import com.serphacker.serposcope.scraper.http.ScrapClient;
+import com.serphacker.serposcope.scraper.http.ScrapClientConfig;
 import com.serphacker.serposcope.scraper.http.ScraperHttpClient;
 import java.util.List;
 import org.junit.Test;
@@ -34,26 +35,24 @@ public class GoogleScraperIT {
     public GoogleScraperIT() {
     }
 
-
-//    @Test
+    // @Test
     public void testHandleCaptcha() throws Exception {
         SwingUICaptchaSolver solver = new SwingUICaptchaSolver();
         solver.init();
 
-        ScrapClient http = new ScrapClient();
-        http.setInsecureSSL(true);
-//        http.setProxy(new HttpProxy("127.0.0.1", 8080));
+        ScrapClient http = newInsecureClient();
+        // http.setProxy(new HttpProxy("127.0.0.1", 8080));
         GoogleScraper scraper = new GoogleScraper(http, solver);
-        assertEquals(OK, scraper.handleCaptchaRedirect("http://www.google.fr/search?q=100", null, "https://ipv4.google.com/sorry/index?continue=https://www.google.fr/"));
+        assertEquals(OK, scraper.handleCaptchaRedirect("http://www.google.fr/search?q=100", null,
+                "https://ipv4.google.com/sorry/index?continue=https://www.google.fr/"));
     }
-    
+
     @Test
     public void testUule() throws Exception {
         SwingUICaptchaSolver solver = new SwingUICaptchaSolver();
         solver.init();
-        ScrapClient http = new ScrapClient();
-        http.setInsecureSSL(true);
-        String[] places = new String[]{"Paris", "Lille"};
+        ScrapClient http = newInsecureClient();
+        String[] places = new String[] { "Paris", "Lille" };
 
         for (String place : places) {
             GoogleScrapSearch search = new GoogleScrapSearch();
@@ -78,13 +77,12 @@ public class GoogleScraperIT {
         }
     }
 
-//    @Test
+    // @Test
     public void testDatacenter() throws Exception {
         SwingUICaptchaSolver solver = new SwingUICaptchaSolver();
         solver.init();
 
-        ScrapClient http = new ScrapClient();
-        http.setInsecureSSL(true);
+        ScrapClient http = newInsecureClient();
         GoogleScraper scraper = new GoogleScraper(http, solver);
 
         {
@@ -96,7 +94,7 @@ public class GoogleScraperIT {
             search.setResultPerPage(10);
             assertEquals(OK, scraper.scrap(search).status);
         }
-        
+
         {
             GoogleScrapSearch search = new GoogleScrapSearch();
             search.setKeyword("restaurant");
@@ -104,15 +102,21 @@ public class GoogleScraperIT {
             search.setPages(3);
             search.setResultPerPage(10);
             assertEquals(OK, scraper.scrap(search).status);
-        }        
-        
+        }
+
     }
-    
+
     @Test
-    public void testDebugDump(){
+    public void testDebugDump() {
         GoogleScraper scraper = new GoogleScraper((ScraperHttpClient) null, null);
         scraper.debugDump("filename", "test data 2");
     }
 
-    
+    private ScrapClient newInsecureClient() {
+        ScrapClientConfig config = ScrapClientConfig.builder()
+                .insecureSSL(true)
+                .build();
+        return new ScrapClient(config);
+    }
+
 }

@@ -23,11 +23,10 @@ public class GoogleScraperParserTest {
     public final static Logger LOG = LoggerFactory.getLogger(GoogleScraperParserTest.class);
 
     private final static List<String> DIRECTORIES = Arrays.asList(
-        "/google/201804",
-        "/google/201810",
-        "/google/201910",
-        "/google/202111"
-    );
+            "/google/201804",
+            "/google/201810",
+            "/google/201910",
+            "/google/202111");
 
     @Test
     public void lastPage() throws IOException {
@@ -62,7 +61,11 @@ public class GoogleScraperParserTest {
             LOG.info("checking {}", file);
 
             String serpHtml = ResourceHelper.readResourceAsString(file);
-            List<String> expectedUrls = Arrays.asList(ResourceHelper.readResourceAsString(file + ".res").split("\n"));
+            List<String> expectedUrls = Arrays.stream(ResourceHelper.readResourceAsString(file + ".res")
+                    .split("\\r?\\n"))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
 
             assertFalse(serpHtml.isEmpty());
             assertFalse(expectedUrls.isEmpty());

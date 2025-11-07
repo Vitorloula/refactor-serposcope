@@ -9,6 +9,7 @@ package com.serphacker.serposcope.scraper.http;
 
 import com.serphacker.serposcope.scraper.DeepIntegrationTest;
 import com.serphacker.serposcope.scraper.http.proxy.HttpProxy;
+import com.serphacker.serposcope.scraper.http.ScrapClientConfig;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -24,35 +25,38 @@ public class ScrapClientSSLIT extends DeepIntegrationTest {
 
     public ScrapClientSSLIT() {
     }
-    
+
     @Test
     public void testSslWithInvalidHostnameFail() throws Exception {
         ScrapClient client = new ScrapClient();
         client.get("https://54.175.219.8");
         assertTrue(client.getException() instanceof SSLPeerUnverifiedException);
     }
-    
+
     @Test
     public void testSslWithInvalidHostname() throws Exception {
-        ScrapClient client = new ScrapClient();
-        client.setInsecureSSL(true);
+        ScrapClientConfig insecureConfig = ScrapClientConfig.builder()
+                .insecureSSL(true)
+                .build();
+        ScrapClient client = new ScrapClient(insecureConfig);
         assertEquals(200, client.get("https://54.175.219.8"));
-    }    
-    
-//    @Test(expected = SSLHandshakeException.class)
-//    public void testSslWithSelfSignedFail() throws Exception {
-//        ScrapClient client = new ScrapClient(false);
-//        CloseableHttpResponse response = client.execute(new HttpGet("https://selfsigned.indahax.com"));
-//    }
-    
-//    @Test
-//    public void testSslWithSelfSigned() throws Exception {
-//        ScrapClient client = new ScrapClient(true);
-//        CloseableHttpResponse response = client.execute(new HttpGet("https://selfsigned.indahax.com"));
-//        assertEquals(200, response.getStatusLine().getStatusCode());
-//    }    
+    }
 
-    
+    // @Test(expected = SSLHandshakeException.class)
+    // public void testSslWithSelfSignedFail() throws Exception {
+    // ScrapClient client = new ScrapClient(false);
+    // CloseableHttpResponse response = client.execute(new
+    // HttpGet("https://selfsigned.indahax.com"));
+    // }
+
+    // @Test
+    // public void testSslWithSelfSigned() throws Exception {
+    // ScrapClient client = new ScrapClient(true);
+    // CloseableHttpResponse response = client.execute(new
+    // HttpGet("https://selfsigned.indahax.com"));
+    // assertEquals(200, response.getStatusLine().getStatusCode());
+    // }
+
     @Test
     public void testMitmSslProxyWithSelfSignedCertificateFail() {
         ScrapClient client = new ScrapClient();
@@ -63,23 +67,26 @@ public class ScrapClientSSLIT extends DeepIntegrationTest {
 
     @Test
     public void testMitmSslProxyWithSelfSignedCertificateSuccess() {
-        ScrapClient client = new ScrapClient();
-        client.setInsecureSSL(true);
+        ScrapClientConfig insecureConfig = ScrapClientConfig.builder()
+                .insecureSSL(true)
+                .build();
+        ScrapClient client = new ScrapClient(insecureConfig);
         client.setProxy(new HttpProxy("127.0.0.1", 8080));
         assertEquals(200, client.get("https://httpbin.org"));
     }
-    
+
     @Test
     public void testInsecureSwitching() throws Exception {
-        ScrapClient client = new ScrapClient();
-        client.setInsecureSSL(true);
-        client.setProxy(new HttpProxy("127.0.0.1", 8080));
-        assertEquals(200, client.get("https://httpbin.org"));
-        
-        boolean occured=false;
-        client.setInsecureSSL(false);
-        assertEquals(-1, client.get("https://httpbin.org"));
-    }    
-    
-    
+        ScrapClientConfig insecureConfig = ScrapClientConfig.builder()
+                .insecureSSL(true)
+                .build();
+        ScrapClient insecureClient = new ScrapClient(insecureConfig);
+        insecureClient.setProxy(new HttpProxy("127.0.0.1", 8080));
+        assertEquals(200, insecureClient.get("https://httpbin.org"));
+
+        ScrapClient secureClient = new ScrapClient();
+        secureClient.setProxy(new HttpProxy("127.0.0.1", 8080));
+        assertEquals(-1, secureClient.get("https://httpbin.org"));
+    }
+
 }

@@ -6,9 +6,9 @@
  * @license https://opensource.org/licenses/MIT MIT License
  */
 package com.serphacker.serposcope.scraper.google.scraper;
+
 import com.serphacker.serposcope.scraper.google.GoogleScrapResult.Status;
 
-import com.serphacker.serposcope.scraper.ResourceHelper;
 import com.serphacker.serposcope.scraper.google.GoogleCountryCode;
 
 import static com.serphacker.serposcope.scraper.google.GoogleScrapResult.Status.ERROR_NETWORK;
@@ -17,6 +17,7 @@ import static com.serphacker.serposcope.scraper.google.GoogleScrapResult.Status.
 import com.serphacker.serposcope.scraper.google.GoogleScrapResult;
 import com.serphacker.serposcope.scraper.google.GoogleScrapSearch;
 import com.serphacker.serposcope.scraper.google.scraper.strategy.SerpParsingStrategy;
+import com.serphacker.serposcope.scraper.http.PostType;
 import com.serphacker.serposcope.scraper.http.ScrapClient;
 import com.serphacker.serposcope.scraper.http.ScraperHttpClient;
 import com.serphacker.serposcope.scraper.http.proxy.ScrapProxy;
@@ -62,7 +63,7 @@ public class GoogleScraperTest {
 
     @Test
     public void testBuildUrl() {
-        
+
         GoogleScraper scraper = new GoogleScraper((ScrapClient) null, null);
         GoogleScrapSearch search = null;
         String url = null;
@@ -159,8 +160,8 @@ public class GoogleScraperTest {
         }
 
         @Override
-        public void setUseragent(String useragent) {
-            this.userAgent = useragent;
+        public void setUserAgent(String useragent) {
+            this.userAgent = userAgent;
         }
 
         @Override
@@ -182,7 +183,7 @@ public class GoogleScraperTest {
         }
 
         @Override
-        public int post(String url, Map<String, Object> data, ScrapClient.PostType dataType, String charset, String referrer) {
+        public int post(String url, Map<String, Object> data, PostType dataType, String charset, String referrer) {
             return 0;
         }
 
@@ -257,37 +258,37 @@ public class GoogleScraperTest {
         }
     }
 
-
     @Test
     public void testBuildUule() {
         GoogleScraper scraper = new GoogleScraper((ScrapClient) null, null);
         assertEquals(
-            "w+CAIQICIpTW9udGV1eCxQcm92ZW5jZS1BbHBlcy1Db3RlIGQnQXp1cixGcmFuY2U",
-            scraper.buildUule("Monteux,Provence-Alpes-Cote d'Azur,France").replaceAll("=+$", "")
-        );
+                "w+CAIQICIpTW9udGV1eCxQcm92ZW5jZS1BbHBlcy1Db3RlIGQnQXp1cixGcmFuY2U",
+                scraper.buildUule("Monteux,Provence-Alpes-Cote d'Azur,France").replaceAll("=+$", ""));
         assertEquals(
-            "w+CAIQICIGRnJhbmNl",
-            scraper.buildUule("France").replaceAll("=+$", "")
-        );
+                "w+CAIQICIGRnJhbmNl",
+                scraper.buildUule("France").replaceAll("=+$", ""));
         assertEquals(
-            "w+CAIQICIlQ2VudHJlLVZpbGxlLENoYW1wYWduZS1BcmRlbm5lLEZyYW5jZQ",
-            scraper.buildUule("Centre-Ville,Champagne-Ardenne,France").replaceAll("=+$", "")
-        );
+                "w+CAIQICIlQ2VudHJlLVZpbGxlLENoYW1wYWduZS1BcmRlbm5lLEZyYW5jZQ",
+                scraper.buildUule("Centre-Ville,Champagne-Ardenne,France").replaceAll("=+$", ""));
         assertEquals(
-            "w+CAIQICIfTGlsbGUsTm9yZC1QYXMtZGUtQ2FsYWlzLEZyYW5jZQ",
-            scraper.buildUule("Lille,Nord-Pas-de-Calais,France").replaceAll("=+$", "")
-        );
+                "w+CAIQICIfTGlsbGUsTm9yZC1QYXMtZGUtQ2FsYWlzLEZyYW5jZQ",
+                scraper.buildUule("Lille,Nord-Pas-de-Calais,France").replaceAll("=+$", ""));
     }
 
     @Test
     public void extractResults() {
         GoogleScraper scraper = new GoogleScraper((ScrapClient) null, null);
         assertEquals(2490l, scraper.extractResultsNumber("Environ 2 490 résultats"));
-//        assertEquals(25270000000l, scraper.extractResultsNumber("Page&nbsp;10 sur environ 25&nbsp;270&nbsp;000&nbsp;000&nbsp;résultats<nobr> (0,46&nbsp;secondes)&nbsp;</nobr>"));
-//        assertEquals(25270000000l, scraper.extractResultsNumber("Page 10 of about 25,270,000,000 results<nobr> (0.42 seconds)&nbsp;</nobr>"));
-        assertEquals(25270000000l, scraper.extractResultsNumber("About 25,270,000,000 results<nobr> (0.28 seconds)&nbsp;</nobr>"));
+        // assertEquals(25270000000l, scraper.extractResultsNumber("Page&nbsp;10 sur
+        // environ 25&nbsp;270&nbsp;000&nbsp;000&nbsp;résultats<nobr>
+        // (0,46&nbsp;secondes)&nbsp;</nobr>"));
+        // assertEquals(25270000000l, scraper.extractResultsNumber("Page 10 of about
+        // 25,270,000,000 results<nobr> (0.42 seconds)&nbsp;</nobr>"));
+        assertEquals(25270000000l,
+                scraper.extractResultsNumber("About 25,270,000,000 results<nobr> (0.28 seconds)&nbsp;</nobr>"));
         assertEquals(225000l, scraper.extractResultsNumber("About 225,000 results<nobr> (0.87 seconds)&nbsp;</nobr>"));
-//        assertEquals(225000l, scraper.extractResultsNumber("Page 5 of about 225,000 results (0.45 seconds) "));
+        // assertEquals(225000l, scraper.extractResultsNumber("Page 5 of about 225,000
+        // results (0.45 seconds) "));
     }
 
 }
